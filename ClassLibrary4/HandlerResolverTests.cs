@@ -192,29 +192,40 @@ namespace ClassLibrary4
         [Fact]
         public void should_maintain_order_with_message_first()
         {
-            var stack = new ConcurrentQueue<int>();
-            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => stack.Enqueue(1));
-            _resolver.Register<Envelope<RegisteredEvent>>(x => stack.Enqueue(2));
+            var queue = new ConcurrentQueue<int>();
+            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => queue.Enqueue(1));
+            _resolver.Register<Envelope<RegisteredEvent>>(x => queue.Enqueue(2));
 
             execute(new MessageEnvelope<CriminalRegisteredEvent>(new CriminalRegisteredEvent("foo")));
 
 
-            Assert.Equal(1, stack.ElementAtOrDefault(0));
-            Assert.Equal(2, stack.ElementAtOrDefault(1));
+            Assert.Equal(1, queue.ElementAtOrDefault(0));
+            Assert.Equal(2, queue.ElementAtOrDefault(1));
         }
 
         [Fact]
         public void should_maintain_order_with_message_interface_first()
         {
-            var stack = new ConcurrentQueue<int>();
-            _resolver.Register<Envelope<RegisteredEvent>>(x => stack.Enqueue(2));
-            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => stack.Enqueue(1));
+            var queue = new ConcurrentQueue<int>();
+            _resolver.Register<Envelope<RegisteredEvent>>(x => queue.Enqueue(2));
+            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => queue.Enqueue(1));
 
             execute(new MessageEnvelope<CriminalRegisteredEvent>(new CriminalRegisteredEvent("foo")));
 
 
-            Assert.Equal(2, stack.ElementAtOrDefault(0));
-            Assert.Equal(1, stack.ElementAtOrDefault(1));
+            Assert.Equal(2, queue.ElementAtOrDefault(0));
+            Assert.Equal(1, queue.ElementAtOrDefault(1));
+        }
+
+        [Fact]
+        public void should_handle_for_untyped_envelope_interface()
+        {
+            var handled = false;
+            _resolver.Register<Envelope>(x => handled = true);
+
+            execute(new MessageEnvelope<CriminalRegisteredEvent>(new CriminalRegisteredEvent("foo")));
+
+            Assert.True(handled);
         }
 
         private void execute(object message)
