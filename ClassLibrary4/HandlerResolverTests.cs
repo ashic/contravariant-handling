@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -185,6 +187,34 @@ namespace ClassLibrary4
             execute(new MessageEnvelope<IEnumerable<PersonRegisteredEvent>>(new[] { new PersonRegisteredEvent("42") }));
 
             Assert.True(handled);
+        }
+
+        [Fact]
+        public void should_maintain_order_with_message_first()
+        {
+            var stack = new ConcurrentQueue<int>();
+            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => stack.Enqueue(1));
+            _resolver.Register<Envelope<RegisteredEvent>>(x => stack.Enqueue(2));
+
+            execute(new MessageEnvelope<CriminalRegisteredEvent>(new CriminalRegisteredEvent("foo")));
+
+
+            Assert.Equal(1, stack.ElementAtOrDefault(0));
+            Assert.Equal(2, stack.ElementAtOrDefault(1));
+        }
+
+        [Fact]
+        public void should_maintain_order_with_message_interface_first()
+        {
+            var stack = new ConcurrentQueue<int>();
+            _resolver.Register<Envelope<RegisteredEvent>>(x => stack.Enqueue(2));
+            _resolver.Register<Envelope<PersonRegisteredEvent>>(x => stack.Enqueue(1));
+
+            execute(new MessageEnvelope<CriminalRegisteredEvent>(new CriminalRegisteredEvent("foo")));
+
+
+            Assert.Equal(2, stack.ElementAtOrDefault(0));
+            Assert.Equal(1, stack.ElementAtOrDefault(1));
         }
 
         private void execute(object message)
